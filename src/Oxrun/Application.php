@@ -141,12 +141,16 @@ class Application extends BaseApplication
      * @param bool $skipViews Add 'blSkipViewUsage' to OXIDs config.
      * @return bool
      */
-    public function checkBootstrapOxidInclude($oxBootstrap)
+    public function checkBootstrapOxidInclude($oxBootstrap, $skipViews = false)
     {
         if (is_file($oxBootstrap)) {
             // is it the oxid bootstrap.php?
             if (strpos(file_get_contents($oxBootstrap), 'OX_BASE_PATH') !== false) {
                 $this->shopDir = dirname($oxBootstrap);
+
+                if ($skipViews) {
+                    $this->applyOxRunConfig(['blSkipViewUsage' => true]);
+                }
 
                 require_once $oxBootstrap;
 
@@ -156,6 +160,12 @@ class Application extends BaseApplication
                     $this->autoloader->register(true);
                 }
 
+                // we must call this once, otherwise there are no modules visible in a fresh shop
+                $oModuleList = oxNew("oxModuleList");
+                $oModuleList->getModulesFromDir(\oxRegistry::getConfig()->getModulesDir());
+
+                $this->removeOxRunConfig();
+
                 return true;
             }
         }
@@ -163,6 +173,39 @@ class Application extends BaseApplication
         return false;
     }
 
+    /**
+     * Adds custom Oxrun configuration to config.inc.php (if exists and not already done).
+     *
+     * @param array $config
+     */
+    protected function applyOxRunConfig(array $config = [])
+    {
+        if (null === $this->oxidConfigContent) {
+            $oxConfigInc    = "{$this->shopDir}/config.inc.php";
+            $oxConfigExists = file_exists("{$this->shopDir}/config.inc.php");
+
+            if ($oxConfigExists) {
+                $this->oxidConfigContent = file_get_contents("{$this->shopDir}/config.inc.php");
+                $newConfigContent = $this->oxidConfigContent;
+                foreach ($config as $configKey => $configValue) {
+                    $newConfigContent .= "\n\$this->{$configKey} = " . var_export($configValue, true) . ";\n";
+                }
+
+                file_put_contents($oxConfigInc, $newConfigContent);
+            }
+
+        }
+    }
+
+    /**
+     * Removes custom Oxrun configuration from config.inc.php.
+     */
+    protected function removeOxRunConfig()
+    {
+        if (null !== $this->oxidConfigContent) {
+            file_put_contents("{$this->shopDir}/config.inc.php", $this->oxidConfigContent);
+        }
+    }
 
     /**
      * @return string
