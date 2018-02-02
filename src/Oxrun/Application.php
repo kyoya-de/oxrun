@@ -141,7 +141,7 @@ class Application extends BaseApplication
                 $this->oxidConfigContent = file_get_contents("{$this->shopDir}/config.inc.php");
                 $newConfigContent = $this->oxidConfigContent;
                 foreach ($config as $configKey => $configValue) {
-                    $newConfigContent .= "\n\$this->{$configKey} = " . var_export($configValue, true);
+                    $newConfigContent .= "\n\$this->{$configKey} = " . var_export($configValue, true) . ";\n";
                 }
 
                 file_put_contents($oxConfigInc, $newConfigContent);
