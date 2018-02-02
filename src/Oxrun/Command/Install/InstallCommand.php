@@ -35,10 +35,9 @@ class InstallCommand extends Command
      */
     protected function configure()
     {
-        $this->oxidVersions = $this->getOxidVersions();
         $this
             ->setName('install:shop')
-            ->addOption('oxidVersion', null, InputOption::VALUE_OPTIONAL, 'Oxid version', key($this->oxidVersions))
+            ->addOption('oxidVersion', null, InputOption::VALUE_OPTIONAL, 'Oxid version')
             ->addOption('installationFolder', null, InputOption::VALUE_OPTIONAL, 'Installation folder', getcwd())
             ->addOption('dbHost', null, InputOption::VALUE_REQUIRED, 'Database host', 'localhost')
             ->addOption('dbUser', null, InputOption::VALUE_REQUIRED, 'Database user', 'oxid')
@@ -60,6 +59,7 @@ class InstallCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->oxidVersions = $this->getOxidVersions();
         if (!isset($this->oxidVersions[$input->getOption('oxidVersion')])) {
             $output->writeln("<error>Oxid {$input->getOption('oxidVersion')} not available</error>");
             return;
@@ -80,7 +80,7 @@ class InstallCommand extends Command
         $this->extractArchive($output, $archiveFile, $target, $oxidVersion);
 
         $output->writeLn("<info>Patching installation</info>");
-        $this->patchOxSetup($target);
+        $this->patchOxSetup($target, $oxidVersion['tag']);
 
         $output->writeLn("<info>Installing shop</info>");
         include_once $target . '/setup/oxrunsetup.php';
@@ -163,7 +163,7 @@ class InstallCommand extends Command
      *
      * @param $target
      */
-    protected function patchOxSetup($target)
+    protected function patchOxSetup($target, $version = null)
     {
         $parser = new \PhpParser\Parser(new PhpParser\Lexer\Emulative);
         $traverser = new \PhpParser\NodeTraverser;
@@ -179,6 +179,18 @@ class InstallCommand extends Command
         } catch (PhpParser\Error $e) {
 
         }
+        // patch version 4.10.2 and above (broken in official installer)
+        if(isset($version)) {
+            if(version_compare($version, "v4.10.2") >= 0){
+                $code = file_get_contents($target . '/setup/oxrunsetup.php');
+                $code = str_replace("demodata.sql", "test_demodata.sql", $code);
+                file_put_contents($target . '/setup/oxrunsetup.php', $code);
+                // they really messed this up, the admin user is missing when the testdata is used.
+                $sqlInitialData = file_get_contents($target . '/setup/sql/initial_data.sql');
+                $sqlDemoData = file_get_contents($target . '/setup/sql/test_demodata.sql');
+                file_put_contents($target . '/setup/sql/test_demodata.sql', $sqlInitialData . PHP_EOL . $sqlDemoData);
+            }
+        }
     }
 
     /**
@@ -189,9 +201,9 @@ class InstallCommand extends Command
         $client = new Client();
         $githubToken = getenv('GITHUB_TOKEN');
         if( $githubToken ) {
-            $tagsArray = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?access_token='.$githubToken)->json();
+            $tagsArray = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?per_page=9999&access_token='.$githubToken)->json();
         } else {
-            $tagsArray = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags')->json();
+            $tagsArray = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?per_page=9999')->json();
         }
         $tagsArray = array_reduce(
             $tagsArray,
