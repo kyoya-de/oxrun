@@ -6,6 +6,7 @@ use Distill\Distill;
 use GuzzleHttp\Client;
 use GuzzleHttp\Event\ProgressEvent;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Utils;
 use Oxrun\PhpParser\OxidSetupNodeVisitor;
 use PhpParser;
 use PhpParser\Node;
@@ -201,10 +202,11 @@ class InstallCommand extends Command
         $client = new Client();
         $githubToken = getenv('GITHUB_TOKEN');
         if( $githubToken ) {
-            $tagsArray = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?per_page=9999&access_token='.$githubToken)->json();
+            $tags = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?per_page=9999&access_token='.$githubToken)->getBody();
         } else {
-            $tagsArray = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?per_page=9999')->json();
+            $tags = $client->get('https://api.github.com/repos/OXID-eSales/oxideshop_ce/tags?per_page=9999')->getBody();
         }
+        $tagsArray = Utils::jsonDecode($tags);
         $tagsArray = array_reduce(
             $tagsArray,
             function ($result, $item) {
