@@ -9,15 +9,17 @@ Thanks to the [netz98 magerun](https://github.com/netz98/n98-magerun) project wh
 
 ## Installation
 
-PHP 5.4 is required.
+PHP 5.6 is required.
 
 If you are using composer (which you probably are), just add `"marcharding/oxrun": "dev-master"` to your composer.json and run composer install.
 
 You can then use oxrun by calling `vendor/bin/oxrun` or add `vendor/bin` to your $PATH to be able to just call `oxrun`.
 
-You can also install oxrun by simply downloading the phar file
+You can also install oxrun by simply downloading the phar file from the release tab.
 
-    wget --no-check-certificate https://raw.githubusercontent.com/marcharding/oxrun/master/oxrun.phar
+Here is a bash snippet which automatically downloads the latest release from github:
+
+    curl -LOk `curl --silent https://api.github.com/repos/marcharding/oxrun/releases/latest | awk '/browser_download_url/ { print $2 }' | sed 's/"//g'`
 
 You can oxrun now via `php oxrun.phar`
 

@@ -21,7 +21,7 @@
   },
   "require-dev": {
     "phpunit/phpunit": "4.6.*",
-    "satooshi/php-coveralls": "^1.0"
+    "php-coveralls/php-coveralls": "^2.0"
   },
   "autoload": {
     "psr-4": {
@@ -39,6 +39,10 @@
     {
       "name":"Stefan Krenz",
       "email":"info@kyoya.de"
+    },
+    {
+      "name":"Tobias Matthaiou",
+      "email":"github@tobimat.de"
     }
   ],
   "bin": ["bin/oxrun"]

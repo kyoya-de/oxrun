@@ -1,13 +1,6 @@
 language: php
 
-branches:
-  only:
-    - master
-    - develop
-
 php:
-  - 5.4
-  - 5.5
   - 5.6
 
 env:
@@ -17,16 +10,25 @@ env:
   - OXID_VERSION="v4.7.14"
 
 before_script:
+  - mkdir -p build/logs
   - curl -s https://getcomposer.org/installer | php
-  - php composer.phar config -g github-oauth.github.com "${GITHUB_TOKEN}"
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then php composer.phar config -g github-oauth.github.com "${GITHUB_TOKEN}"; fi'
   - php composer.phar install
   - mysql -e 'CREATE DATABASE IF NOT EXISTS `oxid`;'
   - bin/oxrun install:shop --oxidVersion="${OXID_VERSION}" --dbUser=root --installationFolder=../ --shopURL=http://local.oxrun --adminUser=admin@local.oxrun --adminPassword=oxrunpassword
   - chmod 777 ../config.inc.php
+
 script:
-  - mkdir -p phpunit/logs
   - vendor/bin/phpunit --debug --stop-on-error --stop-on-failure
-  - chmod 777 phpunit/logs/clover.xml
 
 after_success:
- - php vendor/bin/coveralls -v
+ - if [[ $TRAVIS_TAG != '' ]]; then php -d phar.readonly=0 build-phar -v"${TRAVIS_TAG}"; fi
+ - travis_retry php vendor/bin/coveralls -v
+
+deploy:
+  provider: releases
+  api_key: $GITHUB_TOKEN
+  file: oxrun.phar
+  skip_cleanup: true
+  on:
+    tags: true
